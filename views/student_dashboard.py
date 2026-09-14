@@ -30,6 +30,7 @@ class StudentDashboard(QWidget):
         info_layout = QVBoxLayout()
         self.label_info = QLabel()
         self.label_info.setStyleSheet("font-size: 13px; line-height: 1.5;")
+        # ← linha removida; o QLabel já detecta HTML automaticamente
         info_layout.addWidget(self.label_info)
         self.frame_info.setLayout(info_layout)
         layout.addWidget(self.frame_info)
