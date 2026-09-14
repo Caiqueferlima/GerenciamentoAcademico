@@ -47,6 +47,27 @@ class StudentDashboard(QWidget):
         layout.addWidget(self.tabela)
 
         self.setLayout(layout)
+        self.setStyleSheet(
+            """
+            QWidget { background-color: #f7f9fc; color: #243447; }
+            QLabel { color: #243447; }
+            QTableWidget {
+                background-color: #ffffff;
+                alternate-background-color: #f2f6fa;
+                color: #243447;
+                gridline-color: #d5dde5;
+                selection-background-color: #cfe5f5;
+                selection-color: #172b3a;
+            }
+            QTableWidget QHeaderView::section {
+                background-color: #dce8f2;
+                color: #172b3a;
+                border: 1px solid #c4d1dc;
+                padding: 6px;
+                font-weight: bold;
+            }
+            """
+        )
 
     def _carregar_dados(self):
         session = get_session()
@@ -57,30 +78,33 @@ class StudentDashboard(QWidget):
                 return
 
             curso_nome = aluno.curso.nome if aluno.curso else "—"
-            horas_status = "✔ Concluídas" if aluno.horas_complementares_ok else "⏳ Pendentes"
+            conclusao = aluno.conclusao
+            horas_ok = (
+                conclusao is not None
+                and conclusao.ch_complementar_cumpr is not None
+                and conclusao.ch_complementar_prev is not None
+                and conclusao.ch_complementar_cumpr >= conclusao.ch_complementar_prev
+            )
+            horas_status = "✔ Concluídas" if horas_ok else "⏳ Pendentes"
+            ano, _, semestre = (aluno.periodo_ingresso or "—/—").partition("/")
 
             self.label_info.setText(
                 f"<b>Matrícula:</b> {aluno.matricula}<br>"
                 f"<b>Curso:</b> {curso_nome}<br>"
-                f"<b>Ingresso:</b> {aluno.ano_ingresso or '—'} / "
-                f"{aluno.semestre_ingresso or '—'}º semestre<br>"
+                f"<b>Ingresso:</b> {ano or '—'} / "
+                f"{semestre or '—'}º semestre<br>"
                 f"<b>Horas complementares:</b> {horas_status}"
             )
 
             self.tabela.setRowCount(0)
-            for i, m in enumerate(aluno.matriculas):
+            for i, pendencia in enumerate(aluno.pendencias):
                 self.tabela.insertRow(i)
-                self.tabela.setItem(i, 0, QTableWidgetItem(m.disciplina.nome))
+                self.tabela.setItem(i, 0, QTableWidgetItem(pendencia.disciplina.nome))
                 self.tabela.setItem(
                     i, 1,
-                    QTableWidgetItem(f"{m.ano or '—'}/{m.semestre or '—'}")
+                    QTableWidgetItem("Pendente")
                 )
-                self.tabela.setItem(
-                    i, 2,
-                    QTableWidgetItem(
-                        f"{m.nota_final:.1f}" if m.nota_final is not None else "—"
-                    )
-                )
-                self.tabela.setItem(i, 3, QTableWidgetItem(m.situacao.value))
+                self.tabela.setItem(i, 2, QTableWidgetItem("—"))
+                self.tabela.setItem(i, 3, QTableWidgetItem("Pendente"))
         finally:
             session.close()

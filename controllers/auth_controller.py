@@ -9,12 +9,13 @@ def cadastrar_usuario(nome, email, senha, perfil,
     """Cadastra um novo usuário (Professor ou Aluno)."""
     session = get_session()
     try:
-        if session.query(Usuario).filter_by(email=email.lower()).first():
+        login = email.strip().lower()
+        if session.query(Usuario).filter_by(login=login).first():
             return None, "Este e-mail já está cadastrado."
 
         usuario = Usuario(
             nome=nome.strip(),
-            email=email.strip().lower(),
+            login=login,
             senha_hash=hash_senha(senha),
             perfil=PerfilEnum(perfil),
         )
@@ -31,8 +32,8 @@ def cadastrar_usuario(nome, email, senha, perfil,
             aluno = Aluno(
                 usuario_id=usuario.id,
                 matricula=matricula.strip(),
-                ano_ingresso=ano,
-                semestre_ingresso=semestre,
+                nome=nome.strip(),
+                periodo_ingresso=(f"{ano}/{semestre}" if ano and semestre else None),
             )
             session.add(aluno)
         elif perfil == "PROFESSOR":
@@ -55,7 +56,7 @@ def autenticar(email: str, senha: str):
     """Retorna (dict_usuario, None) em caso de sucesso ou (None, msg_erro)."""
     session = get_session()
     try:
-        usuario = session.query(Usuario).filter_by(email=email.strip().lower()).first()
+        usuario = session.query(Usuario).filter_by(login=email.strip().lower()).first()
         if not usuario:
             return None, "Usuário não encontrado."
         if not verificar_senha(senha, usuario.senha_hash):
@@ -64,7 +65,7 @@ def autenticar(email: str, senha: str):
         return {
             "id": usuario.id,
             "nome": usuario.nome,
-            "email": usuario.email,
+            "email": usuario.login,
             "perfil": usuario.perfil.value,
         }, None
     finally:

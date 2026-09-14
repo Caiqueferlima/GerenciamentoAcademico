@@ -5,7 +5,6 @@ from PySide6.QtWidgets import (
 )
 from database.db import get_session
 from database.models import Aluno
-from utils.excel_importer import importar_alunos
 
 
 class ProfessorDashboard(QWidget):
@@ -74,6 +73,48 @@ class ProfessorDashboard(QWidget):
         layout.addWidget(self.tabela)
 
         self.setLayout(layout)
+        self.setStyleSheet(
+            """
+            QWidget { background-color: #f7f9fc; color: #243447; }
+            QLabel { color: #243447; }
+            QPushButton {
+                background-color: #1769aa;
+                color: #ffffff;
+                border: 1px solid #125488;
+                border-radius: 4px;
+                padding: 7px 12px;
+            }
+            QPushButton:hover { background-color: #125488; }
+            QComboBox {
+                background-color: #ffffff;
+                color: #243447;
+                border: 1px solid #b8c4d1;
+                border-radius: 4px;
+                padding: 5px 8px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #243447;
+                selection-background-color: #d8eaf8;
+                selection-color: #172b3a;
+            }
+            QTableWidget {
+                background-color: #ffffff;
+                alternate-background-color: #f2f6fa;
+                color: #243447;
+                gridline-color: #d5dde5;
+                selection-background-color: #cfe5f5;
+                selection-color: #172b3a;
+            }
+            QTableWidget QHeaderView::section {
+                background-color: #dce8f2;
+                color: #172b3a;
+                border: 1px solid #c4d1dc;
+                padding: 6px;
+                font-weight: bold;
+            }
+            """
+        )
 
     # ------------------------------------------------------------------
     def _carregar_dados(self):
@@ -81,8 +122,9 @@ class ProfessorDashboard(QWidget):
         try:
             # Atualiza a lista de anos disponíveis (mantendo a seleção atual)
             anos = sorted({
-                a[0] for a in session.query(Aluno.ano_ingresso).distinct().all()
-                if a[0]
+                a[0].split("/", 1)[0]
+                for a in session.query(Aluno.periodo_ingresso).distinct().all()
+                if a[0] and "/" in a[0]
             })
             selecao_atual = self.combo_ano.currentData()
             self.combo_ano.blockSignals(True)
@@ -100,14 +142,19 @@ class ProfessorDashboard(QWidget):
             ano_f = self.combo_ano.currentData()
             sem_f = self.combo_semestre.currentData()
             if ano_f:
-                query = query.filter(Aluno.ano_ingresso == ano_f)
+                query = query.filter(Aluno.periodo_ingresso.like(f"{ano_f}/%"))
             if sem_f:
-                query = query.filter(Aluno.semestre_ingresso == sem_f)
+                query = query.filter(Aluno.periodo_ingresso.like(f"%/{sem_f}"))
 
             alunos = query.all()
 
             total = len(alunos)
-            com_horas = sum(1 for a in alunos if a.horas_complementares_ok)
+            com_horas = sum(
+                1 for a in alunos
+                if a.conclusao and a.conclusao.ch_complementar_cumpr is not None
+                and a.conclusao.ch_complementar_prev is not None
+                and a.conclusao.ch_complementar_cumpr >= a.conclusao.ch_complementar_prev
+            )
             pendentes = total - com_horas
             taxa = (com_horas / total * 100) if total else 0
 
@@ -123,37 +170,38 @@ class ProfessorDashboard(QWidget):
                 self.tabela.insertRow(i)
                 self.tabela.setItem(i, 0, QTableWidgetItem(a.matricula))
                 self.tabela.setItem(i, 1, QTableWidgetItem(a.usuario.nome))
-                self.tabela.setItem(i, 2, QTableWidgetItem(a.usuario.email))
-                self.tabela.setItem(i, 3, QTableWidgetItem(str(a.ano_ingresso or "-")))
-                self.tabela.setItem(i, 4, QTableWidgetItem(str(a.semestre_ingresso or "-")))
+                self.tabela.setItem(i, 2, QTableWidgetItem(a.usuario.login if a.usuario else "-"))
+                ano, _, semestre = (a.periodo_ingresso or "-/-").partition("/")
+                self.tabela.setItem(i, 3, QTableWidgetItem(ano or "-"))
+                self.tabela.setItem(i, 4, QTableWidgetItem(semestre or "-"))
                 self.tabela.setItem(
                     i, 5,
-                    QTableWidgetItem("✔ OK" if a.horas_complementares_ok else "⏳ Pendente")
+                    QTableWidgetItem("✔ OK" if a.conclusao and a.conclusao.ch_complementar_cumpr is not None
+                                     and a.conclusao.ch_complementar_prev is not None
+                                     and a.conclusao.ch_complementar_cumpr >= a.conclusao.ch_complementar_prev
+                                     else "⏳ Pendente")
                 )
         finally:
             session.close()
 
     # ------------------------------------------------------------------
     def _importar_planilha(self):
-        caminho, _ = QFileDialog.getOpenFileName(
-            self, "Selecione a planilha de alunos", "",
-            "Planilhas Excel (*.xlsx *.xls)"
+        caminhos, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Selecione as planilhas (pode marcar várias)",
+            "",
+            "Planilhas Excel (*.xlsx *.xls)",
         )
-        if not caminho:
+        if not caminhos:
             return
 
-        try:
-            inseridos, ignorados, erros = importar_alunos(caminho)
-        except Exception as e:
-            QMessageBox.critical(self, "Erro na importação", str(e))
-            return
+        from utils.excel_importer import importar_varios
+        resultados = importar_varios(caminhos)
 
-        msg = (
-            f"<b>Importação concluída!</b><br><br>"
-            f"Alunos inseridos: <b>{inseridos}</b><br>"
-            f"Ignorados (já existiam): <b>{ignorados}</b>"
-        )
-        if erros:
-            msg += f"<br><br><b>Erros ({len(erros)}):</b><br>" + "<br>".join(erros[:5])
-        QMessageBox.information(self, "Resultado", msg)
+        partes = ["<b>Importação concluída</b><br>"]
+        for resultado in resultados:
+            partes.append(resultado.resumo())
+            partes.append("")
+
+        QMessageBox.information(self, "Resultado", "<br>".join(partes))
         self._carregar_dados()
