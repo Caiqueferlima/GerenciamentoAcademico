@@ -86,7 +86,7 @@ class Professor(Base):
     id = Column(Integer, primary_key=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"),
                         unique=True, nullable=False)
-    departamento = Column(String(80))
+    siape = Column(String(20), unique=True, nullable=False)
 
     usuario = relationship("Usuario", back_populates="professor")
 

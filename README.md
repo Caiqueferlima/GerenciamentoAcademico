@@ -6,7 +6,7 @@ de planilhas Excel e dashboards diferenciados por perfil.
 
 ## ✨ Funcionalidades
 
-- Cadastro de usuários (Professor e Aluno) — HU01
+- Cadastro de professores com número de SIAPE — HU01
 - Login com validação de credenciais — HU02
 - Área exclusiva do Professor com importação de planilha e estatísticas — HU03
 - Área exclusiva do Aluno com dados individuais — HU04
@@ -54,7 +54,7 @@ main.py       -> Ponto de entrada
 ## 🧪 Testando
 
 1. Rode `python scripts/gerar_planilha_exemplo.py` para gerar `alunos_exemplo.xlsx`.
-2. Cadastre-se como **Professor** na tela inicial.
+2. Cadastre um **Professor**, informando o número de SIAPE, na tela inicial.
 3. Faça login e clique em **Importar Planilha de Alunos**.
 4. Faça logout e entre com um aluno importado
    (login = e-mail da planilha, **senha = matrícula**).

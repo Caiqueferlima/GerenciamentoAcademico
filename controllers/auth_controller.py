@@ -1,12 +1,10 @@
 from database.db import get_session
-from database.models import Usuario, Aluno, Professor, PerfilEnum
+from database.models import Usuario, Professor, PerfilEnum
 from utils.security import hash_senha, verificar_senha
 
 
-def cadastrar_usuario(nome, email, senha, perfil,
-                      matricula=None, ano=None, semestre=None,
-                      departamento=None):
-    """Cadastra um novo usuário (Professor ou Aluno)."""
+def cadastrar_usuario(nome, email, senha, siape):
+    """Cadastra um novo professor."""
     session = get_session()
     try:
         login = email.strip().lower()
@@ -17,31 +15,18 @@ def cadastrar_usuario(nome, email, senha, perfil,
             nome=nome.strip(),
             login=login,
             senha_hash=hash_senha(senha),
-            perfil=PerfilEnum(perfil),
+            perfil=PerfilEnum.PROFESSOR,
         )
         session.add(usuario)
         session.flush()
 
-        if perfil == "ALUNO":
-            if not matricula:
-                session.rollback()
-                return None, "Matrícula é obrigatória para alunos."
-            if session.query(Aluno).filter_by(matricula=matricula).first():
-                session.rollback()
-                return None, "Esta matrícula já está cadastrada."
-            aluno = Aluno(
-                usuario_id=usuario.id,
-                matricula=matricula.strip(),
-                nome=nome.strip(),
-                periodo_ingresso=(f"{ano}/{semestre}" if ano and semestre else None),
-            )
-            session.add(aluno)
-        elif perfil == "PROFESSOR":
-            prof = Professor(usuario_id=usuario.id, departamento=departamento)
-            session.add(prof)
-        else:
+        if not siape or not siape.strip():
             session.rollback()
-            return None, "Perfil inválido."
+            return None, "Número de SIAPE é obrigatório."
+        if session.query(Professor).filter_by(siape=siape.strip()).first():
+            session.rollback()
+            return None, "Este número de SIAPE já está cadastrado."
+        session.add(Professor(usuario_id=usuario.id, siape=siape.strip()))
 
         session.commit()
         return usuario.id, None
