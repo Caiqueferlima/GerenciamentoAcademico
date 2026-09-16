@@ -1,9 +1,7 @@
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QFrame,
-    QTableWidget, QTableWidgetItem, QHeaderView
-)
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLayout, QScrollArea
 from database.db import get_session
 from database.models import Aluno
+from views.dashboard_widgets import MetricCard, Gauge
 
 
 class StudentDashboard(QWidget):
@@ -14,97 +12,77 @@ class StudentDashboard(QWidget):
         self._carregar_dados()
 
     def _build_ui(self):
-        layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(24, 20, 24, 20)
+        root.setSpacing(14)
+        title = QLabel("Meu desempenho acadêmico")
+        title.setObjectName("title")
+        root.addWidget(title)
+        self.subtitle = QLabel()
+        self.subtitle.setObjectName("subtitle")
+        root.addWidget(self.subtitle)
 
-        header = QLabel(f"🎒 Área do Aluno — Olá, {self.usuario['nome']}")
-        header.setStyleSheet("font-size: 18px; font-weight: bold; padding: 5px;")
-        layout.addWidget(header)
-
-        # Painel de informações do aluno
-        self.frame_info = QFrame()
-        self.frame_info.setStyleSheet(
-            "background-color: #f0f8ff; border-radius: 8px; padding: 15px;"
-        )
-        info_layout = QVBoxLayout()
-        self.label_info = QLabel()
-        self.label_info.setStyleSheet("font-size: 13px; line-height: 1.5;")
-        # ← linha removida; o QLabel já detecta HTML automaticamente
-        info_layout.addWidget(self.label_info)
-        self.frame_info.setLayout(info_layout)
-        layout.addWidget(self.frame_info)
-
-        # Tabela de disciplinas
-        layout.addWidget(QLabel("Minhas disciplinas:"))
-        self.tabela = QTableWidget()
-        self.tabela.setColumnCount(4)
-        self.tabela.setHorizontalHeaderLabels(
-            ["Disciplina", "Ano/Semestre", "Nota", "Situação"]
-        )
-        self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.tabela.setEditTriggers(QTableWidget.NoEditTriggers)
-        layout.addWidget(self.tabela)
-
-        self.setLayout(layout)
-        self.setStyleSheet(
-            """
-            QWidget { background-color: #f7f9fc; color: #243447; }
-            QLabel { color: #243447; }
-            QTableWidget {
-                background-color: #ffffff;
-                alternate-background-color: #f2f6fa;
-                color: #243447;
-                gridline-color: #d5dde5;
-                selection-background-color: #cfe5f5;
-                selection-color: #172b3a;
-            }
-            QTableWidget QHeaderView::section {
-                background-color: #dce8f2;
-                color: #172b3a;
-                border: 1px solid #c4d1dc;
-                padding: 6px;
-                font-weight: bold;
-            }
-            """
-        )
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        self.content_layout = QVBoxLayout(content)
+        self.content_layout.setSpacing(14)
+        scroll.setWidget(content)
+        root.addWidget(scroll)
+        self.setStyleSheet("""
+            QWidget { background: #f4f7fa; color: #172b3a; }
+            QLabel#title { font-size: 24px; font-weight: bold; }
+            QLabel#subtitle { color: #526474; font-size: 13px; }
+            QScrollArea { border: 0; background: transparent; }
+        """)
 
     def _carregar_dados(self):
         session = get_session()
         try:
             aluno = session.query(Aluno).filter_by(usuario_id=self.usuario["id"]).first()
             if not aluno:
-                self.label_info.setText("⚠ Dados de aluno não encontrados.")
+                self.subtitle.setText("Não encontramos dados acadêmicos para este usuário.")
                 return
-
-            curso_nome = aluno.curso.nome if aluno.curso else "—"
             conclusao = aluno.conclusao
-            horas_ok = (
-                conclusao is not None
-                and conclusao.ch_complementar_cumpr is not None
-                and conclusao.ch_complementar_prev is not None
-                and conclusao.ch_complementar_cumpr >= conclusao.ch_complementar_prev
-            )
-            horas_status = "✔ Concluídas" if horas_ok else "⏳ Pendentes"
-            ano, _, semestre = (aluno.periodo_ingresso or "—/—").partition("/")
+            curso = aluno.curso.nome if aluno.curso else "Bacharelado em Sistemas de Informação"
+            situacao = aluno.situacao_matricula or "Não informado"
+            self.subtitle.setText(f"{aluno.nome} | Matrícula: {aluno.matricula} | {curso}")
 
-            self.label_info.setText(
-                f"<b>Matrícula:</b> {aluno.matricula}<br>"
-                f"<b>Curso:</b> {curso_nome}<br>"
-                f"<b>Ingresso:</b> {ano or '—'} / "
-                f"{semestre or '—'}º semestre<br>"
-                f"<b>Horas complementares:</b> {horas_status}"
-            )
+            ano, _, semestre = (aluno.periodo_ingresso or "-/-").partition("/")
+            self.content_layout.addLayout(self._cards([
+                MetricCard("Situação da matrícula", situacao),
+                MetricCard("Período de ingresso", f"{ano}/{semestre}"),
+                MetricCard("Carga horária cumprida", self._format_number(conclusao.ch_cumprida if conclusao else None)),
+                MetricCard("Carga horária prevista", self._format_number(conclusao.ch_prevista if conclusao else None)),
+            ]))
 
-            self.tabela.setRowCount(0)
-            for i, pendencia in enumerate(aluno.pendencias):
-                self.tabela.insertRow(i)
-                self.tabela.setItem(i, 0, QTableWidgetItem(pendencia.disciplina.nome))
-                self.tabela.setItem(
-                    i, 1,
-                    QTableWidgetItem("Pendente")
-                )
-                self.tabela.setItem(i, 2, QTableWidgetItem("—"))
-                self.tabela.setItem(i, 3, QTableWidgetItem("Pendente"))
+            pct_cumprido = self._number(conclusao.pct_cumprido if conclusao else None)
+            ch_obrigatoria = self._number(conclusao.ch_obrigatoria_cumpr if conclusao else None)
+            ch_obrigatoria_max = self._number(conclusao.ch_obrigatoria_prev if conclusao else None)
+            ch_complementar = self._number(conclusao.ch_complementar_cumpr if conclusao else None)
+            ch_complementar_max = self._number(conclusao.ch_complementar_prev if conclusao else None)
+            ch_optativa = self._number(conclusao.ch_optativa_cumpr if conclusao else None)
+            ch_optativa_max = self._number(conclusao.ch_optativa_prev if conclusao else None)
+            gauges = QHBoxLayout()
+            gauges.addWidget(Gauge("Percentual concluído", pct_cumprido, 100, f"{pct_cumprido:.1f}%"))
+            gauges.addWidget(Gauge("CH obrigatória", ch_obrigatoria, ch_obrigatoria_max, f"{ch_obrigatoria:.0f} h"))
+            gauges.addWidget(Gauge("CH complementar", ch_complementar, ch_complementar_max, f"{ch_complementar:.0f} h"))
+            gauges.addWidget(Gauge("CH optativa", ch_optativa, ch_optativa_max, f"{ch_optativa:.0f} h"))
+            self.content_layout.addLayout(gauges)
         finally:
             session.close()
+
+    def _cards(self, cards):
+        grid = QGridLayout()
+        grid.setSpacing(10)
+        for index, card in enumerate(cards):
+            grid.addWidget(card, 0, index)
+        return grid
+
+    @staticmethod
+    def _number(value):
+        return float(value or 0)
+
+    @staticmethod
+    def _format_number(value):
+        return f"{value}" if value is not None else "Não informado"
