@@ -4,6 +4,7 @@ Importador dos 4 relatórios do sistema acadêmico.
 Detecta o tipo pelo nome do arquivo e faz upsert por matrícula.
 """
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,8 +61,29 @@ def _to_str(v):
 
 
 def _limpar_colunas(df: pd.DataFrame) -> pd.DataFrame:
-    df.columns = [str(c).strip() for c in df.columns]
+    df.columns = [str(c).replace("\ufeff", "").strip() for c in df.columns]
     return df
+
+
+def _ler_planilha(caminho: Path) -> pd.DataFrame:
+    """Lê Excel ou CSV, incluindo exportações do relatório de pendências."""
+    if caminho.suffix.lower() == ".csv":
+        df = _limpar_colunas(pd.read_csv(caminho, sep=None, engine="python"))
+    else:
+        df = _limpar_colunas(pd.read_excel(caminho))
+
+    # Algumas exportações de pendências chegam sem a linha de cabeçalho.
+    if _detectar_tipo(caminho.name) == "disciplinas_pendentes" and "Sigla" not in df.columns:
+        if len(df.columns) >= 5:
+            df = df.iloc[:, :5].copy()
+            df.columns = ["Sigla", "Disciplina", "Matrícula", "Nome do Aluno", "Curso"]
+    return df
+
+
+def _normalizar_coluna(nome: str) -> str:
+    texto = unicodedata.normalize("NFKD", str(nome))
+    texto = "".join(char for char in texto if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]", "", texto.lower())
 
 
 def _get_col(row, *nomes):
@@ -122,10 +144,35 @@ def _detectar_tipo(nome_arquivo: str) -> str:
     return "desconhecido"
 
 
+def _detectar_tipo_por_colunas(colunas) -> str:
+    """Reconhece relatórios mesmo quando o usuário renomeia o arquivo."""
+    colunas = {_normalizar_coluna(coluna) for coluna in colunas}
+    if {"sigla", "disciplina", "matricula"}.issubset(colunas):
+        return "disciplinas_pendentes"
+    if "chprevista" in colunas and "cumprido" in colunas:
+        return "percentual_conclusao"
+    if "perletivoinicial" in colunas:
+        return "matricula_ativa"
+    if "matricula" in colunas and "situacaomatricula" in colunas:
+        return "alunos_sem_periodo"
+    return "desconhecido"
+
+
+def _tipo_do_arquivo(caminho: str) -> str:
+    caminho_path = Path(caminho)
+    tipo = _detectar_tipo(caminho_path.name)
+    if tipo != "desconhecido":
+        return tipo
+    try:
+        return _detectar_tipo_por_colunas(_ler_planilha(caminho_path).columns)
+    except Exception:
+        return "desconhecido"
+
+
 # -------------------------------------------------------------- importadores
 def _importar_alunos_sem_periodo(caminho: Path) -> ImportResult:
     res = ImportResult(tipo="AlunosSemPeriodo")
-    df = _limpar_colunas(pd.read_excel(caminho))
+    df = _ler_planilha(caminho)
 
     session = get_session()
     try:
@@ -183,7 +230,7 @@ def _importar_alunos_sem_periodo(caminho: Path) -> ImportResult:
 
 def _importar_matricula_ativa(caminho: Path) -> ImportResult:
     res = ImportResult(tipo="MatriculaAtiva")
-    df = _limpar_colunas(pd.read_excel(caminho))
+    df = _ler_planilha(caminho)
 
     session = get_session()
     try:
@@ -238,7 +285,7 @@ def _importar_matricula_ativa(caminho: Path) -> ImportResult:
 
 def _importar_percentual(caminho: Path) -> ImportResult:
     res = ImportResult(tipo="PercentualDeConclusao")
-    df = _limpar_colunas(pd.read_excel(caminho))
+    df = _ler_planilha(caminho)
 
     session = get_session()
     try:
@@ -311,7 +358,7 @@ def _extrair_curso_da_string(texto: str):
 
 def _importar_disciplinas_pendentes(caminho: Path) -> ImportResult:
     res = ImportResult(tipo="DisciplinasPendentes")
-    df = _limpar_colunas(pd.read_excel(caminho))
+    df = _ler_planilha(caminho)
 
     session = get_session()
     try:
@@ -321,6 +368,7 @@ def _importar_disciplinas_pendentes(caminho: Path) -> ImportResult:
         # Descobre quais alunos serão tocados (para deletar as pendências antigas)
         matriculas_tocadas = set()
         linhas_validas = []
+        pendencias_vistas = set()
         for _, row in df.iterrows():
             sigla = _to_str(_get_col(row, "Sigla"))
             matricula = _to_str(_get_col(row, "Matrícula"))
@@ -328,6 +376,11 @@ def _importar_disciplinas_pendentes(caminho: Path) -> ImportResult:
             curso_str = _to_str(_get_col(row, "Curso"))
             if not sigla or not matricula or not nome_disc:
                 continue
+            chave = (matricula, sigla)
+            if chave in pendencias_vistas:
+                res.ignorados += 1
+                continue
+            pendencias_vistas.add(chave)
             linhas_validas.append((matricula, sigla, nome_disc, curso_str))
             matriculas_tocadas.add(matricula)
 
@@ -372,7 +425,7 @@ def _importar_disciplinas_pendentes(caminho: Path) -> ImportResult:
 # ------------------------------------------------------------------ API pública
 def importar_arquivo(caminho: str) -> ImportResult:
     p = Path(caminho)
-    tipo = _detectar_tipo(p.name)
+    tipo = _tipo_do_arquivo(caminho)
 
     if tipo == "alunos_sem_periodo":
         return _importar_alunos_sem_periodo(p)
@@ -386,8 +439,27 @@ def importar_arquivo(caminho: str) -> ImportResult:
     return ImportResult(tipo=p.name, erros=["Tipo de arquivo não reconhecido."])
 
 
-def importar_varios(caminhos: list[str]) -> list[ImportResult]:
-    """Ordena para Aluno existir antes de Conclusão/Pendência."""
+def _limpar_dados_academicos():
+    """Remove o retrato acadêmico anterior, preservando contas de professores."""
+    session = get_session()
+    try:
+        session.query(Pendencia).delete(synchronize_session=False)
+        session.query(Conclusao).delete(synchronize_session=False)
+        session.query(Aluno).delete(synchronize_session=False)
+        session.query(Disciplina).delete(synchronize_session=False)
+        session.query(Usuario).filter(Usuario.perfil == PerfilEnum.ALUNO).delete(
+            synchronize_session=False
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def importar_varios(caminhos: list[str], substituir: bool = False) -> list[ImportResult]:
+    """Importa o conjunto selecionado, opcionalmente substituindo os dados anteriores."""
     ordem = {
         "alunos_sem_periodo": 0,
         "matricula_ativa": 1,
@@ -395,5 +467,7 @@ def importar_varios(caminhos: list[str]) -> list[ImportResult]:
         "disciplinas_pendentes": 3,
         "desconhecido": 99,
     }
-    caminhos = sorted(caminhos, key=lambda c: ordem[_detectar_tipo(Path(c).name)])
+    caminhos = sorted(caminhos, key=lambda c: ordem[_tipo_do_arquivo(c)])
+    if substituir:
+        _limpar_dados_academicos()
     return [importar_arquivo(c) for c in caminhos]
