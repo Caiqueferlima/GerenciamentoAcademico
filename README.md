@@ -61,12 +61,79 @@ main.py       -> Ponto de entrada
 
 ## 📐 Modelo Entidade-Relacionamento (MER)
 
-Entidades: `Usuario`, `Aluno`, `Professor`, `Curso`, `Disciplina`, `Matricula`.
+O banco de dados é composto pelas entidades `Usuario`, `Aluno`, `Professor`,
+`Curso`, `Disciplina`, `Conclusao` e `Pendencia`.
 
-- `Usuario (1) ― (0..1) Aluno`
-- `Usuario (1) ― (0..1) Professor`
-- `Aluno (N) ― (1) Curso`
-- `Aluno (N) ― (N) Disciplina` via `Matricula`
+```mermaid
+erDiagram
+   USUARIO ||--o| ALUNO : "possui"
+   USUARIO ||--o| PROFESSOR : "possui"
+   CURSO ||--o{ ALUNO : "tem"
+   CURSO ||--o{ DISCIPLINA : "oferece"
+   ALUNO ||--o| CONCLUSAO : "possui"
+   ALUNO ||--o{ PENDENCIA : "possui"
+   DISCIPLINA ||--o{ PENDENCIA : "refere-se a"
+
+   USUARIO {
+      int id PK
+      string login UK
+      string senha_hash
+      string nome
+      enum perfil
+      boolean precisa_trocar_senha
+   }
+   ALUNO {
+      string matricula PK
+      int usuario_id FK, UK
+      string nome
+      enum sexo
+      string curso_codigo FK
+      string periodo_ingresso
+      string situacao_matricula
+      datetime importado_em
+   }
+   PROFESSOR {
+      int id PK
+      int usuario_id FK, UK
+      string siape UK
+   }
+   CURSO {
+      string codigo PK
+      string nome
+   }
+   DISCIPLINA {
+      string sigla PK
+      string nome
+      string curso_codigo FK
+   }
+   CONCLUSAO {
+      string matricula PK, FK
+      int pct_cr_cumprido
+      int pct_cumprido
+      int ch_cumprida
+      int ch_prevista
+      int ano_conclusao_grad
+      int ano_conclusao_pos
+   }
+   PENDENCIA {
+      int id PK
+      string matricula FK
+      string disciplina_sigla FK
+      datetime importado_em
+   }
+```
+
+As planilhas importadas da coordenação do curso de forma pura tem muitas colunas que são ignoradas no projeto pois não são necessárias para os dashboards que aparecem nesse MVP. Todas as colunas podem ser verificadas a seguir:
+![Imagem do Modelo Entidade Relacionamento completo](./src/image.png)
+
+### Cardinalidades
+
+- Um `Usuario` pode estar associado a zero ou um `Aluno` e a zero ou um `Professor`.
+- Um `Curso` possui zero ou vários `Alunos` e `Disciplinas`.
+- Um `Aluno` pertence a zero ou um `Curso`.
+- Um `Aluno` possui zero ou uma `Conclusao`; `Conclusao` usa a matrícula do aluno como chave primária e estrangeira.
+- Um `Aluno` possui zero ou várias `Pendencias`, e cada `Pendencia` referencia uma `Disciplina`.
+- A associação entre `Aluno` e `Disciplina` é representada por `Pendencia`, com combinação `matricula + disciplina_sigla` única.
 
 ## 🔒 Segurança
 
