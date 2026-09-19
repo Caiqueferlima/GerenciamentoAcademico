@@ -85,6 +85,7 @@ class ProfessorDashboard(QWidget):
             for aluno in alunos:
                 situacao = aluno.situacao_matricula or "Não informado"
                 situacoes[situacao] = situacoes.get(situacao, 0) + 1
+            situacoes = dict(sorted(situacoes.items(), key=lambda item: item[1], reverse=True))
             charts.addWidget(BarChart("Contagem de alunos por situação da matrícula", situacoes), 2)
             sexos = {"M": sum(1 for a in alunos if getattr(a.sexo, "value", a.sexo) == "M"),
                      "F": sum(1 for a in alunos if getattr(a.sexo, "value", a.sexo) == "F")}
