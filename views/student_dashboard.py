@@ -27,13 +27,18 @@ class StudentDashboard(QWidget):
         content = QWidget()
         self.content_layout = QVBoxLayout(content)
         self.content_layout.setSpacing(14)
+        content.setObjectName("dashboardContent")
         scroll.setWidget(content)
         root.addWidget(scroll)
         self.setStyleSheet("""
-            QWidget { background: #f4f7fa; color: #172b3a; }
-            QLabel#title { font-size: 24px; font-weight: bold; }
-            QLabel#subtitle { color: #526474; font-size: 13px; }
-            QScrollArea { border: 0; background: transparent; }
+            QWidget { background: #0b1522; color: #f5f8fc; }
+            QLabel#title { color: #f5f8fc; font-size: 26px; font-weight: bold; padding-top: 4px; }
+            QLabel#subtitle { color: #aabbd0; font-size: 13px; padding-bottom: 4px; }
+            QScrollArea { border: 0; background: #0b1522; }
+            QScrollArea QWidget#dashboardContent { background: #0b1522; }
+            QScrollBar:vertical { background: #101e2e; width: 10px; margin: 2px; }
+            QScrollBar::handle:vertical { background: #334c67; border-radius: 5px; min-height: 28px; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
         """)
 
     def _carregar_dados(self):
