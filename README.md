@@ -80,7 +80,6 @@ erDiagram
       string senha_hash
       string nome
       enum perfil
-      boolean precisa_trocar_senha
    }
    ALUNO {
       string matricula PK
@@ -125,6 +124,7 @@ erDiagram
 
 As planilhas importadas da coordenação do curso de forma pura tem muitas colunas que são ignoradas no projeto pois não são necessárias para os dashboards que aparecem nesse MVP. Todas as colunas podem ser verificadas a seguir:
 ![Imagem do Modelo Entidade Relacionamento completo](./src/image.png)
+imagem gerada no site https://jurerotar.github.io/sqlite-erd/
 
 ### Cardinalidades
 

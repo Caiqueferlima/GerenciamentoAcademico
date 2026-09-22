@@ -123,7 +123,6 @@ def _criar_usuario_para_aluno(session, aluno: Aluno):
         nome=aluno.nome,
         senha_hash=hash_senha(senha),
         perfil=PerfilEnum.ALUNO,
-        precisa_trocar_senha=True,
     )
     session.add(usuario)
     session.flush()

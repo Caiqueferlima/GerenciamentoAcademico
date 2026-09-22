@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Boolean, DateTime,
+    Column, Integer, String, DateTime,
     ForeignKey, Enum, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
@@ -26,7 +26,6 @@ class Usuario(Base):
     senha_hash = Column(String(200), nullable=False)
     nome = Column(String(150), nullable=False)
     perfil = Column(Enum(PerfilEnum), nullable=False)
-    precisa_trocar_senha = Column(Boolean, default=False, nullable=False)
 
     aluno = relationship("Aluno", back_populates="usuario",
                          uselist=False, cascade="all, delete-orphan")
