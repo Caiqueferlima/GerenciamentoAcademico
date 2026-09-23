@@ -6,11 +6,16 @@ de planilhas Excel e dashboards diferenciados por perfil.
 
 ## ✨ Funcionalidades
 
-- Cadastro de professores com número de SIAPE — HU01
-- Login com validação de credenciais — HU02
-- Área exclusiva do Professor com importação de planilha e estatísticas — HU03
-- Área exclusiva do Aluno com dados individuais — HU04
-- Encerramento de sessão (logout) — HU05
+| ID | Usuário | História de Usuário | Descrição | Critérios de Aceitação |
+|---|---|---|---|---|
+| HU01 | USUÁRIO | Cadastro de usuário | Como usuário do sistema, quero realizar meu cadastro informando meus dados e meu perfil, para poder acessar o sistema posteriormente. | • Permitir informar os dados obrigatórios.<br>• Permitir selecionar o perfil (Professor ou Aluno).<br>• Validar campos obrigatórios e formato dos dados.<br>• Impedir cadastro com usuário/e-mail já existente.<br>• Exibir confirmação após cadastro realizado. |
+| HU02 | USUÁRIO | Realizar login | Como usuário cadastrado, quero realizar login utilizando minhas credenciais, para acessar as funcionalidades disponíveis para o meu perfil. | • Permitir informar usuário/e-mail e senha.<br>• Validar as credenciais informadas.<br>• Impedir acesso com credenciais inválidas.<br>• Direcionar o usuário para a área correspondente ao seu perfil após o login. |
+| HU03 | PROFESSOR | Acessar área do professor | Como professor autenticado, quero acessar uma área específica para professores, para visualizar funcionalidades e informações relacionadas ao meu perfil. | • Usuário autenticado como professor deve ter acesso à área do professor.<br>• Usuário aluno não deve ter acesso a essa área.<br>• Exibir as funcionalidades disponíveis para professores. |
+| HU04 | ALUNO | Acessar área do aluno | Como aluno autenticado, quero acessar uma área específica para alunos, para visualizar funcionalidades e informações relacionadas ao meu perfil. | • Usuário autenticado como aluno deve ter acesso à área do aluno.<br>• Usuário professor não deve ter acesso às funcionalidades exclusivas do aluno.<br>• Exibir as informações disponíveis para o aluno. |
+| HU05 | USUÁRIO | Encerrar sessão | Como usuário autenticado, quero encerrar minha sessão, para impedir que outra pessoa utilize minha sessão no sistema. | • Disponibilizar opção para sair do sistema.<br>• Encerrar a sessão do usuário após a ação.<br>• Impedir acesso às áreas restritas após o logout sem novo login. |
+| HU06 | PROFESSOR | Importar planilhas da coordenação | Como professor autenticado, quero importar as planilhas enviadas pela coordenação, para popular o sistema com dados atualizados dos alunos. | • Permitir ao professor selecionar e importar planilhas em formato definido pelo sistema.<br>• Validar o formato e a estrutura dos arquivos.<br>• Informar erros caso a planilha seja inválida.<br>• Armazenar os dados importados no banco de dados.<br>• Informar ao professor quando a importação for concluída. |
+| HU07 | PROFESSOR | Visualizar dashboard geral | Como professor autenticado, quero visualizar um dashboard com indicadores gerais do curso, para apoiar a tomada de decisão. | • Permitir ao professor acessar o dashboard geral.<br>• Exibir indicadores acadêmicos do curso.<br>• Apresentar os dados provenientes das planilhas importadas.<br>• Permitir visualizar os indicadores de forma clara.<br>• Atualizar os indicadores após uma nova importação de dados. |
+| HU08 | ALUNO | Visualizar dashboard individual | Como aluno autenticado, quero visualizar um dashboard individual com minha situação acadêmica, para saber o que falta para me formar. | • Permitir ao aluno acessar seu dashboard individual.<br>• Exibir somente os dados acadêmicos relacionados ao próprio aluno.<br>• Apresentar sua situação acadêmica e requisitos pendentes.<br>• Atualizar as informações conforme os dados disponíveis no sistema.<br>• Impedir que o aluno visualize dados de outros alunos. |
 
 ## 🗂️ Estrutura
 
