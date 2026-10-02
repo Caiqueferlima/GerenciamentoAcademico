@@ -10,7 +10,7 @@ SAIDA.mkdir(exist_ok=True)
 def _alunos_sem_periodo():
     dados = [
         # matrícula, nome, sexo, período ingresso, situação, turno, ...
-        ("20231035000017", "CAIQUE FERNANDES DE LIMA", "M", "2023/1", "Matriculado", "Matutino", "Vespertino", 6, "Pública Estadual", "Urbana", "RFP <= 0,5 SM"),
+        ("20231035000017", "KELYANE FERNANDES DE LIMA", "F", "2023/1", "Matriculado", "Matutino", "Vespertino", 6, "Pública Estadual", "Urbana", "RFP <= 0,5 SM"),
         ("20221035000320", "ALEF MOREIRA GOUVEIA DE SOUSA", "M", "2022/1", "Matriculado", "Vespertino", "Noturno", 8, "Pública Estadual", "Urbana", "0,5 SM < RFP <= 1 SM"),
         ("20171035000222", "ALEX ALVES DOS SANTOS", "M", "2017/1", "Formado", "Noturno", "Noturno", 8, "Pública Estadual", "Urbana", ""),
         ("20191035000065", "ALEXANDRE DE LIMA PINHEIRO", "M", "2019/1", "Abandono", "Noturno", "Noturno", 1, "Pública Municipal", "Urbana", ""),
@@ -25,7 +25,7 @@ def _alunos_sem_periodo():
 
 def _matricula_ativa():
     dados = [
-        ("20231035000017", "CAIQUE FERNANDES DE LIMA", "M", "Matriculado", "Matriculado",
+        ("20231035000017", "KELYANE FERNANDES DE LIMA", "F", "Matriculado", "Matriculado",
          "2023/1", "Matutino", "Bacharelado em Sistemas de Informação", 6, "Vespertino",
          "Reabertura de Matrícula", "Até 1 salário", "Ampla Concorrência",
          "RFP <= 0,5 SM", "Pública Estadual", "Urbana", "2 - CAMPUS CEDRO"),
@@ -69,7 +69,7 @@ def _percentual():
         "Situação Período", "Situação Matrícula",
     ]
     dados = [
-        ("20231035000017", "CAIQUE FERNANDES DE LIMA", "2023/1", "03500", 6,
+        ("20231035000017", "KELYANE FERNANDES DE LIMA", "2023/1", "03500", 6,
          3400, 2240, "65,88", 156, 102, "65,38",
          None, None,
          3120, 2040, 80, 0, 200, 200, 0, 0, 0, 0, 0, 0,
@@ -86,8 +86,8 @@ def _percentual():
 
 def _pendentes():
     dados = [
-        ("03500.45", "TRABALHO DE CONCLUSÃO DE CURSO", "20231035000017", "CAIQUE FERNANDES DE LIMA", "03500 - Bacharelado em Sistemas de Informação"),
-        ("03500.32", "PROJETO INTEGRADOR I", "20231035000017", "CAIQUE FERNANDES DE LIMA", "03500 - Bacharelado em Sistemas de Informação"),
+        ("03500.45", "TRABALHO DE CONCLUSÃO DE CURSO", "20231035000017", "KELYANE FERNANDES DE LIMA", "03500 - Bacharelado em Sistemas de Informação"),
+        ("03500.32", "PROJETO INTEGRADOR I", "20231035000017", "KELYANE FERNANDES DE LIMA", "03500 - Bacharelado em Sistemas de Informação"),
         ("03500.45", "TRABALHO DE CONCLUSÃO DE CURSO", "20221035000320", "ALEF MOREIRA GOUVEIA DE SOUSA", "03500 - Bacharelado em Sistemas de Informação"),
     ]
     df = pd.DataFrame(dados, columns=["Sigla", "Disciplina", "Matrícula", "Nome do Aluno", "Curso"])
