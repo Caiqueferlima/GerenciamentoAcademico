@@ -1,7 +1,7 @@
 # Sistema Acadêmico Desktop
 Este projeto apresenta um sistema de apoio à decisão de gerenciamento de dados para auxiliar no controle de informações acadêmicas em coordenações de cursos. 
 
-## Problemática
+## Problemática e Objetivo do Sistema
 
 O acompanhamento do percurso acadêmico dos estudantes é essencial para identificar situações de retenção, pendências curriculares e dificuldades na conclusão do curso. No entanto, quando essas informações estão dispersas em diferentes planilhas e sistemas, torna-se difícil compreender o cenário geral e transformar dados em decisões.
 Este trabalho apresenta o desenvolvimento de um sistema desktop de Business Intelligence (BI) com dashboards para apoiar a análise da trajetória acadêmica dos estudantes do IFCE Campus Cedro.
@@ -68,7 +68,7 @@ main.py       -> Ponto de entrada
 2. Cadastre um **Professor** na tela inicial.
 3. Faça login e clique em **Importar Planilha de Alunos**.
 4. Faça logout e entre com um aluno importado
-   (login = matrícula completa, **senha = 4 primeiros dígitos da matrícula**).
+   (login = matrícula completa, **senha = 4 últimos dígitos da matrícula**).
 
 ## Modelo Entidade-Relacionamento (MER)
 
@@ -81,7 +81,7 @@ erDiagram
    USUARIO ||--o| PROFESSOR : "possui"
    CURSO ||--o{ ALUNO : "tem"
    CURSO ||--o{ DISCIPLINA : "oferece"
-   ALUNO ||--o| CONCLUSAO : "possui"
+   ALUNO ||--|| CONCLUSAO : "possui"
    ALUNO ||--o{ PENDENCIA : "possui"
    DISCIPLINA ||--o{ PENDENCIA : "refere-se a"
 
@@ -139,12 +139,18 @@ imagem gerada no site https://jurerotar.github.io/sqlite-erd/
 
 ### Cardinalidades
 
-- Um `Usuario` pode estar associado a zero ou um `Aluno` e a zero ou um `Professor`.
-- Um `Curso` possui zero ou vários `Alunos` e `Disciplinas`.
-- Um `Aluno` pertence a zero ou um `Curso`.
-- Um `Aluno` possui zero ou uma `Conclusao`; `Conclusao` usa a matrícula do aluno como chave primária e estrangeira.
-- Um `Aluno` possui zero ou várias `Pendencias`, e cada `Pendencia` referencia uma `Disciplina`.
-- A associação entre `Aluno` e `Disciplina` é representada por `Pendencia`, com combinação `matricula + disciplina_sigla` única.
+| Relação | Cardinalidade | Descrição |
+|---|---|---|
+| `USUARIO` — `ALUNO` | 0..1 para 1 | Um usuário pode não ter perfil de aluno; cada aluno possui exatamente um usuário. |
+| `USUARIO` — `PROFESSOR` | 0..1 para 1 | Um usuário pode não ser professor; cada professor possui exatamente um usuário. |
+| `CURSO` — `ALUNO` | 0..N para 1 | Um curso pode ter zero ou vários alunos; cada aluno deve pertencer obrigatoriamente a um curso. |
+| `CURSO` — `DISCIPLINA` | 0..N para 1 | Um curso pode ter zero ou várias disciplinas; cada disciplina deve pertencer obrigatoriamente a um curso. |
+| `ALUNO` — `CONCLUSAO` | 1 para 1 | Todo aluno deve possuir um registro de conclusão; cada conclusão pertence a um único aluno. |
+| `ALUNO` — `PENDENCIA` | 1 para 0..N | Um aluno pode ter várias pendências. |
+| `DISCIPLINA` — `PENDENCIA` | 1 para 0..N | Uma disciplina pode aparecer como pendência para vários alunos. |
+
+A associação entre `ALUNO` e `DISCIPLINA` é representada por `PENDENCIA`, com
+combinação `matricula + disciplina_sigla` única.
 
 ## Justificativa das tecnologias
 

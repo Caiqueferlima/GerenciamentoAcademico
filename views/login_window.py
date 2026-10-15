@@ -30,9 +30,8 @@ class LoginWindow(QWidget):
         subtitulo.setStyleSheet("color: #666; margin-bottom: 10px;")
         layout.addWidget(subtitulo)
 
-        layout.addWidget(QLabel("E-mail:"))
+        layout.addWidget(QLabel("E-mail ou matrícula:"))
         self.input_email = QLineEdit()
-        self.input_email.setPlaceholderText("seu@email.com")
         layout.addWidget(self.input_email)
 
         layout.addWidget(QLabel("Senha:"))
